@@ -1,4 +1,5 @@
-(executable
- (public_name aoc_2022)
- (name main)
- (libraries aoc_2022))
+(executables
+ (names main calorie_counting)
+ (public_names aoc_2022 calorie_counting)
+ (libraries aoc_2022)
+ (preprocess (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord)))
