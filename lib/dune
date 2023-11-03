@@ -1,4 +1,5 @@
 (library
  (name aoc_2022)
  (inline_tests)
- (preprocess (pps ppx_deriving.show ppx_expect)))
+ (preprocess
+  (pps ppx_deriving.show ppx_expect)))

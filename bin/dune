@@ -2,4 +2,5 @@
  (name main)
  (public_name aoc_2022)
  (libraries aoc_2022)
- (preprocess (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord)))
+ (preprocess
+  (pps ppx_deriving.show ppx_deriving.eq ppx_deriving.ord)))
