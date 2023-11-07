@@ -19,6 +19,7 @@ end
 
 let select_challenge = function
   | "calorie_counting" -> Ok Calorie_counting.solve
+  | "rock_paper_scissors" -> Ok Rock_paper_scissors.solve
   | challenge -> Error (Printf.sprintf "Unknown challenge: %s" challenge)
 ;;
 
