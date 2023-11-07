@@ -1,15 +1,4 @@
 let ( % ) f g x = f (g x)
-
-let sequence list =
-  let rec loop list acc =
-    match list with
-    | [] -> Ok (List.rev acc)
-    | Error e :: _ -> Error e
-    | Ok x :: xs -> loop xs (x :: acc)
-  in
-  loop list []
-;;
-
 let sum = List.fold_left ( + ) 0
 
 module Pick = struct
@@ -64,32 +53,49 @@ module Round = struct
   ;;
 end
 
-(* Line example: `A Y` *)
-let parse_line line =
-  let ( let* ) = Result.bind in
-  let line = String.trim line in
-  let p1, p2 = Scanf.sscanf line "%c %c" (fun a b -> a, b) in
-  let* p1 = Pick.of_char p1 in
-  let* p2 = Pick.of_char p2 in
-  Ok (p1, p2)
-;;
+module Parser = struct
+  (* Line example: `A Y` *)
+  let parse_line line =
+    let ( let* ) = Result.bind in
+    let line = String.trim line in
+    let p1, p2 = Scanf.sscanf line "%c %c" (fun a b -> a, b) in
+    let* p1 = Pick.of_char p1 in
+    let* p2 = Pick.of_char p2 in
+    Ok (p1, p2)
+  ;;
 
-let is_string_empty = function
-  | "" -> true
-  | _ -> false
-;;
+  let is_string_empty = function
+    | "" -> true
+    | _ -> false
+  ;;
 
-let remove_empty_lines = List.filter @@ (not % is_string_empty % String.trim)
+  let remove_empty_lines = List.filter @@ (not % is_string_empty % String.trim)
+
+  let sequence list =
+    let rec loop list acc =
+      match list with
+      | [] -> Ok (List.rev acc)
+      | Error e :: _ -> Error e
+      | Ok x :: xs -> loop xs (x :: acc)
+    in
+    loop list []
+  ;;
+
+  let parse file_contents =
+    file_contents
+    |> String.split_on_char '\n'
+    |> remove_empty_lines
+    |> List.map parse_line
+    |> sequence
+    |> function
+    | Ok x -> x
+    | Error e -> invalid_arg e
+  ;;
+end
 
 let solve file_contents =
   file_contents
-  |> String.split_on_char '\n'
-  |> remove_empty_lines
-  |> List.map parse_line
-  |> sequence
-  |> (function
-        | Ok x -> x
-        | Error e -> invalid_arg e)
+  |> Parser.parse
   |> List.map Round.points_from_round
   |> sum
   |> Printf.printf "%d\n"
