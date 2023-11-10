@@ -2,7 +2,7 @@ let ( % ) f g x = f (g x)
 let sum = List.fold_left ( + ) 0
 
 module Parser = struct
-  module LcToken = struct
+  module LeftToken = struct
     (** left column *)
     type t =
       | A
@@ -17,7 +17,7 @@ module Parser = struct
     ;;
   end
 
-  module RcToken = struct
+  module RightToken = struct
     (** right column *)
     type t =
       | X
@@ -37,8 +37,8 @@ module Parser = struct
     let ( let* ) = Result.bind in
     let line = String.trim line in
     let l, r = Scanf.sscanf line "%c %c" (fun a b -> a, b) in
-    let* l = LcToken.of_char l in
-    let* r = RcToken.of_char r in
+    let* l = LeftToken.of_char l in
+    let* r = RightToken.of_char r in
     Ok (l, r)
   ;;
 
@@ -59,16 +59,12 @@ module Parser = struct
     loop list []
   ;;
 
-  (* TODO: return result and fail outside *)
   let parse file_contents =
     file_contents
     |> String.split_on_char '\n'
     |> remove_empty_lines
     |> List.map parse_line
     |> sequence
-    |> function
-    | Ok x -> x
-    | Error e -> invalid_arg e
   ;;
 end
 
@@ -78,16 +74,16 @@ module Pick = struct
     | Paper
     | Scissors
 
-  let of_lc_token token =
-    let open Parser.LcToken in
+  let of_left_token token =
+    let open Parser.LeftToken in
     match token with
     | A -> Rock
     | B -> Paper
     | C -> Scissors
   ;;
 
-  let of_rc_token token =
-    let open Parser.RcToken in
+  let of_right_token token =
+    let open Parser.RightToken in
     match token with
     | X -> Rock
     | Y -> Paper
@@ -101,8 +97,8 @@ module RoundOutcome = struct
     | Lose
     | Draw
 
-  let of_rc_token token =
-    let open Parser.RcToken in
+  let of_right_token token =
+    let open Parser.RightToken in
     match token with
     | X -> Lose
     | Y -> Draw
@@ -152,25 +148,29 @@ module Game = struct
   ;;
 end
 
-let solve_part_one tokens =
-  tokens
-  |> List.map (fun (l, r) -> Pick.of_lc_token l, Pick.of_rc_token r)
-  |> List.map Game.calculate_round_points
-  |> sum
-;;
+module PartOne = struct
+  let solve_line (l, r) =
+    Game.calculate_round_points (Pick.of_left_token l, Pick.of_right_token r)
+  ;;
 
-let solve_part_two tokens =
-  tokens
-  |> List.map (fun (l, r) -> Pick.of_lc_token l, RoundOutcome.of_rc_token r)
-  |> List.map (fun (elf, outcome) -> elf, Game.get_pick_to outcome elf)
-  |> List.map Game.calculate_round_points
-  |> sum
-;;
+  let solve = sum % List.map solve_line
+end
+
+module PartTwo = struct
+  let solve_line (l, r) =
+    let elf, outcome = Pick.of_left_token l, RoundOutcome.of_right_token r in
+    Game.calculate_round_points (elf, Game.get_pick_to outcome elf)
+  ;;
+
+  let solve = sum % List.map solve_line
+end
 
 let solve file_contents =
-  let tokens = Parser.parse file_contents in
-  Printf.printf "%d\n" @@ solve_part_one tokens;
-  Printf.printf "%d\n" @@ solve_part_two tokens
+  match Parser.parse file_contents with
+  | Ok tokens ->
+    Printf.printf "%d\n" @@ PartOne.solve tokens;
+    Printf.printf "%d\n" @@ PartTwo.solve tokens
+  | Error e -> invalid_arg e
 ;;
 
 let%expect_test _ =
@@ -179,5 +179,5 @@ let%expect_test _ =
     B X
     C Z
     |};
-  [%expect "\n    15\n    12\n  "]
+  [%expect "\n15\n12"]
 ;;
