@@ -19,7 +19,7 @@
  (name aoc_2022)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml dune ppx_deriving ppx_expect)
+ (depends ocaml dune base stdio ppx_deriving ppx_expect)
  (tags
   (topics "to describe" your project)))
 

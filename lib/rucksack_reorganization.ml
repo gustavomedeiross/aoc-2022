@@ -1,17 +1,18 @@
-module CharSet = Set.Make (Char)
+open Base
+module CharSet = Set.M (Char)
 
 let ( % ) f g x = f (g x)
 let alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 let priority ch =
-  String.index_opt alphabet ch
-  |> Option.map @@ ( + ) 1
-  |> Option.to_result ~none:(Printf.sprintf "Character not found in alphabet: %c" ch)
+  String.index alphabet ch
+  |> Option.map ~f:(( + ) 1)
+  |> Result.of_option ~error:(Printf.sprintf "Character not found in alphabet: %c" ch)
 ;;
 
 let split_string str pos =
-  let first = String.sub str 0 @@ pos in
-  let last = String.sub str pos @@ (String.length str - pos) in
+  let first = String.prefix str pos in
+  let last = String.suffix str (String.length str - pos) in
   first, last
 ;;
 
@@ -25,27 +26,27 @@ let sequence list =
   loop list []
 ;;
 
-let sum = List.fold_left ( + ) 0
+let sum = List.fold_left ~init:0 ~f:( + )
 
 let is_string_empty = function
   | "" -> true
   | _ -> false
 ;;
 
-let remove_empty_lines = List.filter @@ (not % is_string_empty % String.trim)
+let remove_empty_lines = List.filter ~f:(not % is_string_empty % String.strip)
 
 module PartOne = struct
   let solve lines =
     let results =
       List.mapi
-        (fun index line ->
+        ~f:(fun index line ->
           (* TODO: create module to encapulate set *)
           let first, last = split_string line @@ (String.length line / 2) in
-          let first' = CharSet.of_seq (String.to_seq first) in
-          let last' = CharSet.of_seq (String.to_seq last) in
-          let intersection = CharSet.inter first' last' in
+          let first' = Set.of_list (module Char) (String.to_list first) in
+          let last' = Set.of_list (module Char) (String.to_list last) in
+          let intersection = Set.inter first' last' in
           let ch =
-            match CharSet.to_list intersection with
+            match Set.to_list intersection with
             | [ ch ] -> Ok ch
             | ch ->
               let str = [%show: char list] ch in
@@ -55,7 +56,7 @@ module PartOne = struct
                    index
                    str)
           in
-          Result.bind ch priority)
+          Result.bind ch ~f:priority)
         lines
     in
     match sequence results with
@@ -65,7 +66,7 @@ module PartOne = struct
 end
 
 module PartTwo = struct
-  let range i = List.init i succ
+  let range i = List.init i ~f:Int.succ
   let is_div_by n x = Int.equal 0 @@ Int.rem x n
 
   (* TODO: create function like "split on" that takes a lambda *)
@@ -79,19 +80,17 @@ module PartTwo = struct
       | (x, _) :: xs -> aux xs ys (x :: curr)
     in
     let idxs = range @@ List.length list in
-    let xs = List.combine list idxs in
+    let xs = List.zip_exn list idxs in
     aux xs [] []
   ;;
 
   let intersect group =
-    let group = group |> List.map (CharSet.of_seq % String.to_seq) in
-    group |> List.fold_left CharSet.inter (List.hd group) |> CharSet.to_list
+    let group = group |> List.map ~f:(Set.of_list (module Char) % String.to_list) in
+    group |> List.fold_left ~init:(List.hd_exn group) ~f:Set.inter |> Set.to_list
   ;;
 
   let solve lines =
-    let results =
-      lines |> group |> List.map intersect |> List.flatten |> List.map priority
-    in
+    let results = lines |> group |> List.bind ~f:intersect |> List.map ~f:priority in
     match sequence results with
     | Ok priorities -> sum priorities
     | Error err -> invalid_arg err
@@ -101,12 +100,12 @@ end
 let solve file_contents =
   let lines =
     file_contents
-    |> String.split_on_char '\n'
-    |> List.map String.trim
+    |> String.split ~on:'\n'
+    |> List.map ~f:String.strip
     |> remove_empty_lines
   in
-  Printf.printf "%d\n" @@ PartOne.solve lines;
-  Printf.printf "%d\n" @@ PartTwo.solve lines
+  Stdio.printf "%d\n" @@ PartOne.solve lines;
+  Stdio.printf "%d\n" @@ PartTwo.solve lines
 ;;
 
 let%expect_test _ =
